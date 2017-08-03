@@ -27,13 +27,14 @@ python to spawn a PTY. I will work on other options in the future
 ```
 Usage:
     supertty.py --port <port> --host <host> [--shell <shell>]
-    supertty.py --port <port> [--ip <ip>] [--shell <shell>]
+    supertty.py --port <port> [--udp] [--ip <ip>] [--shell <shell>]
     supertty.py (-h | --help)
 
 Options:
     -h --help           Show this screen
     --port <port>       Port number to listen on to to connect to the remote host on [default: 4445]
     --host <host>       Host to connect to for bind shells
+    --udp               Listen over udp
     --ip <ip>           ip to listen on for reverse shells [default: "0.0.0.0"]
     --shell <shell>     Shell spawn as PTY [default: /bin/bash]
 ```
