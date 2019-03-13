@@ -18,23 +18,26 @@ This method is not my own invention and was pinched from [this post](https://blo
 Installation couldnt be simpler.
 
 * Clone this repo
-* `pip install docopt`
 
 ## Usage
 Can be used as a catcher or to connect to a bind shell, at the moment it uses
 python to spawn a PTY. I will work on other options in the future
 
 ```
-Usage:
-    supertty.py --port <port> --host <host> [--shell <shell>]
-    supertty.py --port <port> [--udp] [--ip <ip>] [--shell <shell>]
-    supertty.py (-h | --help)
+usage: supertty.py [-h] [--handler HANDLER]
 
-Options:
-    -h --help           Show this screen
-    --port <port>       Port number to listen on to to connect to the remote host on [default: 4445]
-    --host <host>       Host to connect to for bind shells
-    --udp               Listen over udp
-    --ip <ip>           ip to listen on for reverse shells [default: "0.0.0.0"]
-    --shell <shell>     Shell spawn as PTY [default: /bin/bash]
+Reverse shell catcher
+
+optional arguments:
+  -h, --help         show this help message and exit
+  --handler HANDLER  Name of the handler module to use
 ```
+
+Each handler has its own options see them with `--handler-help`
+
+Currently has two handlers:
+
+* netcat
+* openssl
+
+Pull requests for other types welcome!
