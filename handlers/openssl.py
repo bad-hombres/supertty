@@ -17,10 +17,23 @@ class Handler(lib.BaseHandler):
         if self.args.key_path: self.args.key_path.close()
         if self.args.cert_path: self.args.cert_path.close()
 
-    def get_process_command(self):
+    def get_process_commands(self):
+        proclist = []
+        args = ["openssl", "s_server", "-quiet", "-key", self.key, "-cert", self.cert, "-port", str(self.args.port), "-naccept", "1"] 
         if self.args.host:
-            return ["openssl", "s_client", "-quiet", "-connect", "{}:{}".format(self.args.host, str(self.args.port))]
-        return ["openssl", "s_server", "-quiet", "-key", self.key, "-cert", self.cert, "-port", str(self.args.port), "-naccept", "1"]
+            args = ["openssl", "s_client", "-quiet", "-connect", "{}:{}".format(self.args.host, str(self.args.port))]
+
+        proclist.append(args)
+        if self.args.stdout_port:
+            stdout_args = list(args)
+            stdout_args[-3] = str(self.args.stdout_port)
+            proclist.append(stdout_args)
+
+        if self.args.verbose:
+            for p in proclist:
+                print "[+] Command: {}".format(" ".join(p))
+
+        return proclist
 
     def get_argparser(self):
         p = super(Handler, self).get_argparser()

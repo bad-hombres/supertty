@@ -10,35 +10,6 @@ def get_handler(handler, args):
     m = __import__("handlers.{}".format(handler), fromlist=[handler])
     return m.Handler(args)
 
-class ShellUpgrader(object):    
-    def __init__(self):
-        self.needs_reset = False
-
-    def setup(self):
-        self.term = os.environ["TERM"]
-        self.rows, self.columns = os.popen('stty size', 'r').read().split()
-        print "[+] Got terminal: {}".format(self.term) 
-        print "[+] Got terminal size {} rows, {} columns".format(self.rows, self.columns) 
-        print "[+] Setting up local terminal....."
-        os.system("stty raw -echo")
-        self.needs_reset = True
-
-    def upgrade_shell(self,handler):
-        handler.send_command("python -c 'import pty; pty.spawn(\"/bin/bash\")'")
-        time.sleep(2)
-        handler.send_command("export TERM={}".format(self.term))
-        handler.send_command("export SHELL={}".format("/bin/bash"))
-        handler.send_command("stty rows {} columns {}".format(self.rows, self.columns))
-        handler.send_command("reset")
-
-    def reset_local(self, message):
-        if self.needs_reset:
-            print "[+] Resetting local terminal....."
-            os.system("stty raw echo")
-            os.system("reset")
-            self.needs_reset = False
-            print message
-
 
 class GetOutputThread(threading.Thread):
     def __init__(self, handler):
@@ -71,33 +42,59 @@ class BaseHandler(object):
         required.add_argument("--port", type=int, help="Port to listen on or connect to")
         group = p.add_mutually_exclusive_group()
         group.add_argument("--host", help="Host to connect to for bind shells")
-        group.add_argument("--ip", help="ip to listen on for reverse shells")
+        group.add_argument("--stdout-port", type=int, help="Port to listen on for stdout (useful if no pipes are available etc)")
         p.add_argument("--handler-help", action="store_true")
         p.add_argument("--verbose", action="store_true")
         return p
 
-
-    def get_process_commend(self):
+    def get_process_commands(self):
         pass
 
     def get_output(self):
         try:
-            out = self.process.stdout.read()
+            out = self.stdout.read()
             return out
         except IOError:
             return None
 
     def send_command(self, command):
-        self.process.stdin.write("{}\n".format(command))
-        self.process.stdin.flush()
+        self.stdin.write("{}\n".format(command))
+        self.stdin.flush()
 
-    def wait_for_connection():
+    def send_command_get_output(self, command, timeout = 1):
+        self.send_command(command)
+        out = self.get_output()
+        i = 0
+        while out is None:
+            if i >= timeout: break
+            time.sleep(1)
+            i += 1
+            out = self.get_output()
+
+        return out
+
+    def wait_for_connection(self):
         raise "Please Implement wait_for_connection in derived classes..."
 
+    def setup_processes(self):
+        process_info = self.get_process_commands()
+        print process_info
+        self.processes = []
+
+        for i, p in enumerate(process_info):
+            if i > 1: break
+            tmp = subprocess.Popen(p, stdout = subprocess.PIPE, stderr = subprocess.STDOUT, stdin = subprocess.PIPE)
+            fcntl.fcntl(tmp.stdout.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
+            self.processes.append(tmp)
+
+        self.stdin = self.processes[0].stdin
+        if len(self.processes) == 2: 
+            self.stdout = self.processes[1].stdout
+        else:
+            self.stdout = self.processes[0].stdout
+
     def start(self, upgrader):
-        print " ".join(self.get_process_command())
-        self.process = subprocess.Popen(self.get_process_command(), stdout = subprocess.PIPE, stderr = subprocess.STDOUT, stdin = subprocess.PIPE)
-        fcntl.fcntl(self.process.stdout.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
+        self.setup_processes()
         upgrader.setup()
         self.wait_for_connection()
         print "[+] Connection establishd!"
@@ -111,7 +108,8 @@ class BaseHandler(object):
             line = sys.stdin.read(1)
             if ord(line[0]) in [4]: break
             if line == "": break
-            self.process.stdin.write(line)
+            self.stdin.write(line)
 
     def stop(self):
-        self.process.kill()
+        for p in self.processes:
+            p.kill()

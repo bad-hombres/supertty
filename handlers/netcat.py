@@ -4,7 +4,8 @@ class Handler(lib.BaseHandler):
     def __init__(self, args):
         super(Handler, self).__init__(args)
 
-    def get_process_command(self):
+    def get_process_commands(self):
+        proclist = []
         args = ["nc"]
 
         if self.args.host:
@@ -18,10 +19,17 @@ class Handler(lib.BaseHandler):
                 args.append("-nvlp")
 
         args.append(str(self.args.port))
-        if self.args.verbose:
-            print "[+] Netcat command: {}".format(" ".join(args))
+        proclist.append(args)
+        if self.args.stdout_port:
+            stdout_args = list(args)
+            stdout_args[-1] = str(self.args.stdout_port)
+            proclist.append(stdout_args)
 
-        return args
+        if self.args.verbose:
+            for args in proclist:
+                print "[+] Netcat command: {}".format(" ".join(args))
+
+        return proclist
 
     def get_argparser(self):
         p = super(Handler, self).get_argparser()

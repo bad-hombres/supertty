@@ -10,7 +10,7 @@ banner = """ (                                        )
          |_|
          (c) Bad Hombres 2017
 """
-import sys, os, signal, lib, argparse
+import sys, os, signal, lib, argparse, upgrader
 print banner
 handler = None
 
@@ -27,7 +27,7 @@ def sigint_handler(signal, frame):
     sys.exit()
 
 signal.signal(signal.SIGINT, sigint_handler)
-upgrader = lib.ShellUpgrader()
+upgrader = upgrader.ShellUpgrader()
 
 try:
     handler = lib.get_handler(opts.handler, handler_args)
